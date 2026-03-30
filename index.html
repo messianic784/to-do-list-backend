@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List Task</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 50px;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        h1 { 
+            color: #2c3e50; 
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #3498db;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .add-btn { background: #2ecc71; color: white; }
+        
+        ul { list-style: none; padding: 0; margin-top: 20px; }
+
+        li {
+            background: #fff;
+            border: 1px solid #eee;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-text {
+            color: #34495e;
+            font-size: 16px;
+            word-break: break-all;
+        }
+
+        .btn-group { display: flex; gap: 5px; }
+
+        .edit-btn { background: #f1c40f; color: #fff; }
+        .delete-btn { background: #e74c3c; color: white; }
+
+        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>My Tasks</h1>
+        
+        <div class="input-group">
+            <input type="text" id="todoInput" placeholder="Add a new task...">
+            <button class="add-btn" onclick="addTodo()">Add Item</button>
+        </div>
+
+        <hr>
+
+        <ul id="todoList"></ul>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/todos';
+
+        // Load tasks on startup
+        window.onload = fetchTodos;
+
+        // 1. GET ALL
+        async function fetchTodos() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                const list = document.getElementById('todoList');
+                list.innerHTML = ''; 
+                
+                data.forEach(item => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <span class="task-text">${item.task}</span>
+                        <div class="btn-group">
+                            <button class="edit-btn" onclick="editTodo(${item.id})">Edit</button>
+                            <button class="delete-btn" onclick="deleteTodo(${item.id})">Delete</button>
+                        </div>
+                    `;
+                    list.appendChild(li);
+                });
+            } catch (err) {
+                console.error("Could not connect to backend. Is node server.js running?");
+            }
+        }
+
+        // 2. ADD ITEM
+        async function addTodo() {
+            const input = document.getElementById('todoInput');
+            const taskValue = input.value.trim();
+
+            if (!taskValue) return;
+
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task: taskValue })
+                });
+
+                input.value = ''; // Clear input
+                fetchTodos();     // Refresh list
+            } catch (err) {
+                alert("Error: Server is not responding.");
+            }
+        }
+
+        // 3. DELETE ITEM
+        async function deleteTodo(id) {
+            await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+            fetchTodos();
+        }
+
+        // 4. EDIT ITEM
+        async function editTodo(id) {
+            const newText = prompt("Update task:");
+            if (newText && newText.trim() !== "") {
+                await fetch(`${API_URL}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task: newText.trim() })
+                });
+                fetchTodos();
+            }
+        }
+    </script>
+</body>
+</html>
